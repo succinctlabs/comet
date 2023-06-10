@@ -31,7 +31,7 @@ export class Loader<T, U, R> {
     return this.instance;
   }
 
-  static async load<T, U, R>(glob = 'scenario/**.ts'): Promise<Loader<T, U, R>> {
+  static async load<T, U, R>(glob = 'scenario/CrossChainGovernanceScenario.ts'): Promise<Loader<T, U, R>> {
     if (this.instance)
       throw new Error('Loader already initialized');
     return await (this.instance = new Loader() as Loader<T, U, R>).load(glob);
