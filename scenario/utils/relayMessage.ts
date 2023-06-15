@@ -1,5 +1,6 @@
 import { DeploymentManager } from '../../plugins/deployment_manager';
-import relayPolygonMessage from './relayPolygonMessage';
+// import relayPolygonMessage from './relayPolygonMessage';
+import relaySuccinctMessage from './relaySuccinctMessage';
 import relayArbitrumMessage from './relayArbitrumMessage';
 import relayBaseMessage from './relayBaseMessage';
 
@@ -15,7 +16,7 @@ export default async function relayMessage(
       break;
     case 'mumbai':
     case 'polygon':
-      await relayPolygonMessage(governanceDeploymentManager, bridgeDeploymentManager, startingBlockNumber);
+      await relaySuccinctMessage(governanceDeploymentManager, bridgeDeploymentManager, startingBlockNumber);
       break;
     case 'arbitrum':
     case 'arbitrum-goerli':

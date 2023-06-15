@@ -362,7 +362,9 @@ export async function executeOpenProposal(
     const proposal = await governor.proposals(id);
     await setNextBlockTimestamp(dm, Math.max(block.timestamp, proposal.eta.toNumber()) + 1);
     await setNextBaseFeeToZero(dm);
+    console.log("BEFORE EXECUTE");
     await governor.execute(id, { gasPrice: 0, gasLimit: 12000000 });
+    console.log("AFTER EXECUTE");
   }
 }
 
@@ -392,6 +394,8 @@ export async function fastGovernanceExecute(
   const proposeEvent = proposeTxn.events.find(event => event.event === 'ProposalCreated');
   const [id, , , , , , startBlock, endBlock] = proposeEvent.args;
 
+  console.log("Proposal created");
+
   await executeOpenProposal(dm, { id, startBlock, endBlock });
 }
 
@@ -405,6 +409,7 @@ export async function fastL2GovernanceExecute(
   calldatas: string[]
 ) {
   const startingBlockNumber = await governanceDeploymentManager.hre.ethers.provider.getBlockNumber();
+  console.log("Starting block number: ", startingBlockNumber);
   await fastGovernanceExecute(
     governanceDeploymentManager,
     proposer,
@@ -414,6 +419,7 @@ export async function fastL2GovernanceExecute(
     calldatas
   );
 
+  console.log("GOING TO RELAY MESSAGE");
   await relayMessage(governanceDeploymentManager, bridgeDeploymentManager, startingBlockNumber);
 }
 
@@ -471,16 +477,27 @@ export async function createCrossChainProposal(context: CometContext, l2Proposal
     }
     case 'mumbai':
     case 'polygon': {
-      const sendMessageToChildCalldata = utils.defaultAbiCoder.encode(
-        ['address', 'bytes'],
-        [bridgeReceiver.address, l2ProposalData]
-      );
-      const fxRoot = await govDeploymentManager.getContractOrThrow('fxRoot');
+      // const sendMessageToChildCalldata = utils.defaultAbiCoder.encode(
+      //   ['address', 'bytes'],
+      //   [bridgeReceiver.address, l2ProposalData]
+      // );
+      // const fxRoot = await govDeploymentManager.getContractOrThrow('fxRoot');
 
-      targets.push(fxRoot.address);
+      // targets.push(fxRoot.address);
+      // values.push(0);
+      // signatures.push('sendMessageToChild(address,bytes)');
+      // calldata.push(sendMessageToChildCalldata);
+      // break;
+      const sentMessageCalldata = utils.defaultAbiCoder.encode(
+        ['uint32', 'address', 'bytes'],
+        [137, bridgeReceiver.address, l2ProposalData]
+      );
+      const telepathyRouter = await govDeploymentManager.getContractOrThrow('telepathyRouter');
+
+      targets.push(telepathyRouter.address);
       values.push(0);
-      signatures.push('sendMessageToChild(address,bytes)');
-      calldata.push(sendMessageToChildCalldata);
+      signatures.push('send(uint32,address,bytes)');
+      calldata.push(sentMessageCalldata);
       break;
     }
     default:

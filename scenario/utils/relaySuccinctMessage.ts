@@ -4,6 +4,7 @@ import { executeBridgedProposal } from './bridgeProposal';
 import { setNextBaseFeeToZero } from './hreUtils';
 // import { Contract, ethers } from 'ethers';
 import { Log } from '@ethersproject/abstract-provider';
+import { utils, BigNumber } from 'ethers';
 import {OpenBridgedProposal} from '../context/Gov';
 
 export default async function relaySuccinctMessage(
@@ -11,41 +12,45 @@ export default async function relaySuccinctMessage(
   bridgeDeploymentManager: DeploymentManager,
   startingBlockNumber: number
 ) {
-  const TELEPATHY_ROUTER_ADDRESS = '0x41EA857C32c8Cb42EEFa00AF67862eCFf4eB795a';
+  console.log("---RELAY SUCCINCT MESSAGE---");
+  const POLYGON_RECEIVER_ADDRESSS = '0x0000000000000000000000000000000000001001';
 
-  // Mainnet Contracts
-  const telepathyRouter = await governanceDeploymentManager.getContractOrThrow('telepathyRouter');
+  // L1
+  const telepathyRouterL1 = await governanceDeploymentManager.getContractOrThrow('telepathyRouter'); // Inbox -> Bridge
 
   // Telepathy Router will call and execute into bridge receiver
   const bridgeReceiver = await bridgeDeploymentManager.getContractOrThrow('bridgeReceiver');
+  const telepathyRouterL2 = await bridgeDeploymentManager.getContractOrThrow('telepathyRouter');
 
-  // grab all events on the Telepathy contract since the `startingBlockNumber`
-  const filter = telepathyRouter.filters.SentMessage();
-  
+  // grab all events on the telepathyRouterL1 contract since the `startingBlockNumber`
   const sentMessageEvents: Log[] = await governanceDeploymentManager.hre.ethers.provider.getLogs({
     fromBlock: startingBlockNumber,
     toBlock: 'latest',
-    address: telepathyRouter.address,
-    topics: filter.topics!
+    address: telepathyRouterL1.address,
+    topics: [utils.id('SentMessage(uint64,bytes32,bytes)')]
   });
+
+  console.log("Sent Message Events: ", sentMessageEvents);
 
   for (let sentMessageEvent of sentMessageEvents) {
     const {
-      args: { data: sentMessageEventData }
-    } = telepathyRouter.interface.parseLog(sentMessageEvent);
+      args: { data: sentMessageData }
+    } = telepathyRouterL1.interface.parseLog(sentMessageEvent);
 
     // Cross-chain message passing
     const succinctReceiverSigner = await impersonateAddress(
       bridgeDeploymentManager,
-      TELEPATHY_ROUTER_ADDRESS
+      POLYGON_RECEIVER_ADDRESSS
     );
 
     await setNextBaseFeeToZero(bridgeDeploymentManager);
+    console.log("Methods on telepathyRouter: ", telepathyRouterL2.address, telepathyRouterL2.interface); 
     const onStateReceiveTxn = await(
-      await bridgeReceiver.connect(succinctReceiverSigner).onStateReceive(
-        123, // stateId
-        sentMessageEventData, // _data
-        { gasPrice: 0 }
+      await telepathyRouterL2.connect(succinctReceiverSigner).executeMessage(
+        10000, // stateId
+        sentMessageData, // _data
+        [],
+        []
       )
     ).wait();
 

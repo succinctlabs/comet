@@ -1,10 +1,12 @@
 import { scenario } from './context/CometContext';
 import { expect } from 'chai';
 import { utils } from 'ethers';
-import { BaseBridgeReceiver, SuccinctBridgeReceiver } from '../build/types';
+import { BaseBridgeReceiver } from '../build/types';
 import { calldata } from '../src/deploy';
 import { isBridgedDeployment, matchesDeployment, createCrossChainProposal } from './utils';
 import { ArbitrumBridgeReceiver } from '../build/types';
+import { SuccinctBridgeReceiver } from '../build/types';
+
 
 // This is a generic scenario that runs for all L2s and sidechains
 scenario(
@@ -265,7 +267,7 @@ scenario(
 scenario(
   'test Succinct cross-chain governance proposals',
   {
-    filter: async ctx => matchesDeployment(ctx, [{network: 'fuji'}])
+    filter: async ctx => matchesDeployment(ctx, [{network: 'polygon'}])
   },
   async ({ comet, configurator, proxyAdmin, timelock: oldLocalTimelock, bridgeReceiver: oldBridgeReceiver }, context, world) => {
     const dm = world.deploymentManager;
@@ -276,7 +278,7 @@ scenario(
     }
 
     // Deploy new Succinct Bridge Receiver
-    const newBridgeReceiver = await dm.deploy<BaseBridgeReceiver, [string]>(
+    const newBridgeReceiver = await dm.deploy<SuccinctBridgeReceiver, [string]>(
       'newBridgeReceiver',
       'bridges/succinct/SuccinctBridgeReceiver.sol',
       [telepathyRouter.address] // telepathyRouter 
@@ -296,7 +298,7 @@ scenario(
       ]
     );
 
-    // Initialize new PolygonBridgeReceiver
+    // Initialize new SuccinctBridgeReceiver
     const mainnetTimelock = (await governanceDeploymentManager.getContractOrThrow('timelock')).address;
     await newBridgeReceiver.initialize(
       mainnetTimelock,             // govTimelock
