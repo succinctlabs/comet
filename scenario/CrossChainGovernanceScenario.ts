@@ -116,7 +116,7 @@ scenario(
     expect(await comet.governor()).to.eq(oldLocalTimelock.address);
 
     await createCrossChainProposal(context, upgradeL2GovContractsProposal, oldBridgeReceiver);
-
+    
     expect(await proxyAdmin.owner()).to.eq(newLocalTimelock.address);
     expect(await comet.governor()).to.eq(newLocalTimelock.address);
 

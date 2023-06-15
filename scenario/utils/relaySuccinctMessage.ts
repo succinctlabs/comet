@@ -4,7 +4,7 @@ import { executeBridgedProposal } from './bridgeProposal';
 import { setNextBaseFeeToZero } from './hreUtils';
 // import { Contract, ethers } from 'ethers';
 import { Log } from '@ethersproject/abstract-provider';
-import { utils, BigNumber } from 'ethers';
+import { utils } from 'ethers';
 import {OpenBridgedProposal} from '../context/Gov';
 
 export default async function relaySuccinctMessage(
